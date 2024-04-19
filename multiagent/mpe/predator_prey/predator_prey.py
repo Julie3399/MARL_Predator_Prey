@@ -6,7 +6,6 @@ from multiagent.mpe._mpe_utils.scenario import BaseScenario
 from multiagent.mpe._mpe_utils.simple_env import SimpleEnv, make_env
 from multiagent.utils.conversions import parallel_wrapper_fn
 
-
 class raw_env(SimpleEnv, EzPickle):
     def __init__(
         self,
@@ -34,6 +33,9 @@ class raw_env(SimpleEnv, EzPickle):
             max_cycles=max_cycles,
         )
         self.metadata["name"] = "predator_prey"
+    def get_all_benchmark_data(self):
+        # Assuming the scenario class has a method to calculate benchmark data
+        return self.scenario.get_benchmark_data_for_all_predators(self.world)
 
 env = make_env(raw_env)
 parallel_env = parallel_wrapper_fn(env)
@@ -106,6 +108,13 @@ class Scenario(BaseScenario):
         else:
             return 0
 
+    def get_benchmark_data_for_all_predators(self, world):
+        collision_num = 0
+        for agent in world.agents:
+            if agent.predator:
+                collision_num += self.benchmark_data(agent, world)
+        return collision_num
+    
     def is_collision(self, agent1, agent2):
         delta_pos = agent1.state.p_pos - agent2.state.p_pos
         dist = np.sqrt(np.sum(np.square(delta_pos)))
@@ -122,42 +131,70 @@ class Scenario(BaseScenario):
 
     def reward(self, agent, world):
         main_reward = (
-            self.predator_reward(agent, world)
+            self.predator_reward(agent, world) #, shape=shape
             if agent.predator
             else self.agent_reward(agent, world)
         )
         return main_reward
 
-    def agent_reward(self, agent, world):
-        # Agents are negatively rewarded if caught by predators
-        rew = 0
-        shape = True
-        predators = self.predators(world)
-        if (
-            shape
-        ):  # reward can optionally be shaped (increased reward for increased distance from predators)
-            for adv in predators:
-                rew += 0.1 * np.sqrt(
-                    np.sum(np.square(agent.state.p_pos - adv.state.p_pos))
-                )
-        if agent.collide:
-            for a in predators:
-                if self.is_collision(a, agent):
-                    rew -= 10
+    def agent_reward(self, agent, world, shape=False, closer=True):
+        def obstacle_avoidance_reward(agent, obstacles, avoidance_factor=0.1):
+            # Reward agent based on distance to the closest obstacle
+            min_distance = min(np.sqrt(np.sum(np.square(agent.state.p_pos - obs.state.p_pos))) for obs in obstacles)
+            # Reward increases as distance to obstacle increases
+            return avoidance_factor * min_distance
 
+        # def exploration_bonus(agent, visited_positions, bonus=0.02):
+        #     # Check if new position and reward for new locations
+        #     if tuple(agent.state.p_pos) not in visited_positions:
+        #         visited_positions.add(tuple(agent.state.p_pos))
+        #         return bonus
+        #     return 0
         
-        # agents are penalized for exiting the screen, so that they can be caught by the predators
+        def collaborative_reward(agent, other_agents, collaboration_radius=1.0, bonus=0.1, penalty=-0.1, closer=False):
+            # Reward for staying close to other agents
+            if closer:
+                count_nearby = sum(1 for other in other_agents if np.linalg.norm(agent.state.p_pos - other.state.p_pos) < collaboration_radius)
+                return bonus * count_nearby
+            else: 
+                # Reward for staying apart from other agents
+                count_too_close = sum(1 for other in other_agents if np.linalg.norm(agent.state.p_pos - other.state.p_pos) < collaboration_radius)
+                return penalty * count_too_close
+        
+        def incremental_distance_reward(agent, predators, factor=0.1):
+            # Reward prey based on increasing distance to the closest predator
+            min_distance = min(np.sqrt(np.sum(np.square(agent.state.p_pos - adv.state.p_pos))) for adv in predators)
+            return factor * min_distance
+        
+        rew = 0
+        obstacles = world.landmarks
+        predators = self.predators(world)
+        # last_position = agent.state.p_pos  # Assuming you keep track of last position
+
+        # Apply reward functions
+        if shape: 
+            rew += obstacle_avoidance_reward(agent, obstacles)
+            rew += incremental_distance_reward(agent, predators)
+            # rew += exploration_bonus(agent, world.visited_positions)
+            rew += collaborative_reward(agent, self.prey_agents(world), closer=closer)     
+
+        # Existing collision and boundary checks
+        if agent.collide:
+            for obs in obstacles:
+                if self.is_collision(obs, agent):
+                    rew -= 10
+                    
         def bound(x):
             if x < 0.9:
                 return 0
             if x < 1.0:
                 return (x - 0.9) * 10
             return min(np.exp(2 * x - 2), 10)
-
+        
         for p in range(world.dim_p):
             x = abs(agent.state.p_pos[p])
             rew -= bound(x)
-        
+
         return rew
 
     def predator_reward(self, agent, world):
