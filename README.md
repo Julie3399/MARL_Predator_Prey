@@ -2,7 +2,6 @@
 
 Code and setup details adapted from https://github.com/Destiny000621/Predator-Prey-MARL. 
 
-Here's a clearer and more succinct way to present your contributions:
 
 ## Our Contributions:
 1. **Ensemble Training:** Implemented methods for combined training techniques.
