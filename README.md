@@ -44,7 +44,7 @@ Execute the following command to evaluate the performances of agents:
 python evaluation.py
 ```
 
-### Results
+## Results
 
 
 | Training Algorithm | Evaluation Results                                   |
