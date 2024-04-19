@@ -11,12 +11,12 @@ import numpy as np
 import imageio
 
 
-save_dir = 'MADDPG_DDPG_models_5_3'
+save_dir = 'MADDPG_DDPG_models_3_1'
 
 env = predator_prey.parallel_env(render_mode="rgb_array", max_cycles=25)
 observations, infos = env.reset()
 
-maddpg_agent = MADDPG(obs_dim=env.observation_space("predator_0").shape[0], act_dim=env.action_space("predator_0").n, num_predators = 5, hidden_size=128, seed=1)
+maddpg_agent = MADDPG(obs_dim=env.observation_space("predator_0").shape[0], act_dim=env.action_space("predator_0").n, num_predators = 3, hidden_size=128, seed=1)
 ddpg_agent0 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n, hidden_size=128, seed=2)
 
 # Load the models for each agent
@@ -24,12 +24,12 @@ load_maddpg(maddpg_agent, save_dir)
 load_ddpg(ddpg_agent0, 'ddpg_agent0', save_dir)
 
 # Initialize wandb
-wandb.init(project='MAPP_evaluate_test', name='MADDPG_5_3')
+wandb.init(project='MAPP_evaluate_test', name='MADDPG_3_1')
 
 # Set a folder to save the gifs
-gif_dir = 'MADDPG_gifs_5_3'
-if not os.path.exists(gif_dir):
-    os.makedirs(gif_dir)
+# gif_dir = 'MADDPG_gifs_5_3'
+# if not os.path.exists(gif_dir):
+#     os.makedirs(gif_dir)
 
 def evaluate_model(num_episodes):
     total_rewards = []
@@ -65,8 +65,8 @@ def evaluate_model(num_episodes):
             episode_rewards.append(sum(rewards.values()))
             observations = next_observations
 
-        if episode % 20 == 0:
-            SimpleEnv.display_frames_as_gif(frames, episode, gif_dir)
+        # if episode % 20 == 0:
+        #     SimpleEnv.display_frames_as_gif(frames, episode, gif_dir)
 
         mean_one_episode_reward = sum(episode_rewards)/len(episode_rewards)
         total_rewards.append(mean_one_episode_reward)
