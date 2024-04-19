@@ -1,0 +1,139 @@
+from utils.load_model import load_ddpg, load_maddpg
+import wandb
+from baseline.DQN import DQNAgent
+from algorithm.DDPG import DDPG
+from algorithm.MADDPG import MADDPG
+import os
+from collections import deque
+from multiagent.mpe.predator_prey import predator_prey
+from multiagent.mpe._mpe_utils.simple_env import SimpleEnv
+import numpy as np
+import imageio
+
+save_dir = 'MADDPG_DDPG_models_4_2 copy'
+
+env = predator_prey.parallel_env(render_mode="rgb_array", max_cycles=25)
+observations, infos = env.reset()
+
+maddpg_agent = MADDPG(obs_dim=env.observation_space("predator_0").shape[0], act_dim=env.action_space("predator_0").n,
+                      num_predators=4, hidden_size=128, seed=1)
+ddpg_agent0 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n,
+                   hidden_size=128, seed=2)
+ddpg_agent1 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n,
+                   hidden_size=128, seed=2)
+# ddpg_agent2 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n,
+#                    hidden_size=128, seed=2, id=2)
+
+# Load the models for each agent
+load_maddpg(maddpg_agent, save_dir)
+load_ddpg(ddpg_agent0, 'ddpg_agent0', save_dir)
+load_ddpg(ddpg_agent1, 'ddpg_agent1', save_dir)
+# load_ddpg(ddpg_agent2, 'ddpg_agent2', save_dir)
+
+# Initialize wandb
+wandb.init(project='Evaluate_Final', name='MADDPG_DDPG_4_2')
+
+# Set a folder to save the gifs
+gif_dir = 'MADDPG_gifs_MA_DD_4_2_1'
+if not os.path.exists(gif_dir):
+    os.makedirs(gif_dir)
+
+# Define a window size for averaging episode rewards
+WINDOW_SIZE = 20
+episode_rewards_window = deque(maxlen=WINDOW_SIZE)
+
+def evaluate_model(num_episodes):
+    total_rewards = []
+    collision_num = 0
+
+    for episode in range(num_episodes):
+        episode_rewards = []
+        frames = []
+        observations, _ = env.reset()
+        agent_rewards = {'predator': [], 'prey': []}
+
+        ddpg_agents = {
+            0: ddpg_agent0,
+            1: ddpg_agent1,
+            # 2: ddpg_agent2
+        }
+
+        while env.agents:
+            actions = {}
+            for agent, obs in observations.items():
+                if "predator" in agent:
+                    actions[agent] = maddpg_agent.act([obs])[0]
+                else:
+                    # actions[agent] = ddpg_agent.act(obs)
+                    agent_id = int(agent.split("_")[1])
+                    actions[agent] = ddpg_agents[agent_id].act(obs)
+
+            frames.append(env.render())
+            next_observations, rewards, terminations, truncations, infos = env.step(actions)
+            # return collision number
+            collision_num += env.unwrapped.get_all_benchmark_data()  
+
+            # Store experiences and update
+            for agent, obs in observations.items():
+                reward = rewards[agent]
+                next_obs = next_observations[agent]
+                done = terminations[agent]
+
+                if "predator" in agent:
+                    maddpg_agent.store_experience(obs, actions[agent], reward, next_obs, done)
+                    maddpg_losses = maddpg_agent.update()
+                    agent_rewards['predator'].append(reward)                    
+
+                else:
+                    # ddpg_agent.store_experience(obs, actions[agent], reward, next_obs, done)
+                    # ddpg_loss = ddpg_agent.update()
+
+                    agent_id = int(agent.split("_")[1])
+                    ddpg_agent = ddpg_agents[agent_id]
+                    ddpg_agent.store_experience(obs, actions[agent], reward, next_obs, done)
+                    agent_rewards['prey'].append(reward)
+                    
+                    if agent_id == 0:
+                        ddpg_loss0 = ddpg_agent0.update()
+                    elif agent_id == 1:
+                        ddpg_loss1 = ddpg_agent1.update()
+                    # elif agent_id == 2:
+                    #     ddpg_loss2 = ddpg_agent2.update()
+
+            episode_rewards.append(sum(rewards.values()))
+            observations = next_observations
+
+        if episode % 20 == 0:
+            SimpleEnv.display_frames_as_gif(frames, episode, gif_dir)
+
+        # Calculate the mean reward for predators and prey
+        mean_predator_reward = sum(agent_rewards['predator']) / len(agent_rewards['predator']) if agent_rewards['predator'] else 0
+        mean_prey_reward = sum(agent_rewards['prey']) / len(agent_rewards['prey']) if agent_rewards['prey'] else 0
+
+        # Log the mean rewards for predators and prey
+        wandb.log({"Mean Predator Reward": mean_predator_reward})
+        wandb.log({"Mean Prey Reward": mean_prey_reward})
+        
+        mean_one_episode_reward = sum(episode_rewards) / len(episode_rewards)
+        total_rewards.append(mean_one_episode_reward)
+
+        # Append the episode's cumulative reward to the window
+        episode_rewards_window.append(sum(episode_rewards))
+
+        # Compute the mean reward over the last N episodes
+        mean_episode_reward = sum(episode_rewards_window) / len(episode_rewards_window)
+
+        wandb.log({
+            "Mean Episode Reward": mean_one_episode_reward,
+            "Mean Episode Reward (Last {} episodes)".format(WINDOW_SIZE): mean_episode_reward
+        })
+        
+        print("Collision Number So Far:", collision_num)
+
+    avg_reward = np.mean(total_rewards)
+    print(f'Average Reward over {num_episodes} episodes: {avg_reward}')
+    wandb.finish()
+
+
+evaluate_model(num_episodes=200)
+env.close()
