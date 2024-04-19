@@ -12,36 +12,36 @@ import imageio
 from tqdm import tqdm
 
 
-save_dir = 'DDPG_DDPG_models_4_2_rewards(Closer)' # 'DDPG_DDPG_models_4_2_rewards(Far)'
+save_dir = 'DDPG_DDPG_models_3_1' # 'DDPG_DDPG_models_4_2_rewards(Far)'
 
 env = predator_prey.parallel_env(render_mode="rgb_array", max_cycles=25)
 observations, infos = env.reset()
 
 ddpg_agent_predator_0 = DDPG(obs_dim=env.observation_space("predator_0").shape[0], act_dim=env.action_space("predator_0").n,
-                   hidden_size=128, seed=2)
+                   hidden_size=128, seed=20)
 ddpg_agent_predator_1 = DDPG(obs_dim=env.observation_space("predator_1").shape[0], act_dim=env.action_space("predator_1").n,
-                   hidden_size=128, seed=3)
+                   hidden_size=128, seed=21)
 ddpg_agent_predator_2 = DDPG(obs_dim=env.observation_space("predator_2").shape[0], act_dim=env.action_space("predator_2").n,
-                   hidden_size=128, seed=4)
-ddpg_agent_predator_3 = DDPG(obs_dim=env.observation_space("predator_3").shape[0], act_dim=env.action_space("predator_3").n,
-                   hidden_size=128, seed=5)
+                   hidden_size=128, seed=22)
+# ddpg_agent_predator_3 = DDPG(obs_dim=env.observation_space("predator_3").shape[0], act_dim=env.action_space("predator_3").n,
+#                    hidden_size=128, seed=5)
 
-ddpg_agent_prey_0 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n, hidden_size=128, seed=40)
-ddpg_agent_prey_1 = DDPG(obs_dim=env.observation_space("prey_1").shape[0], act_dim=env.action_space("prey_1").n, hidden_size=128, seed=41)
+ddpg_agent_prey_0 = DDPG(obs_dim=env.observation_space("prey_0").shape[0], act_dim=env.action_space("prey_0").n, hidden_size=128, seed=23)
+# ddpg_agent_prey_1 = DDPG(obs_dim=env.observation_space("prey_1").shape[0], act_dim=env.action_space("prey_1").n, hidden_size=128, seed=41)
 
 # Load the models for each agent
 load_ddpg(ddpg_agent_predator_0, 'ddpg_agent_predator_0', save_dir)
 load_ddpg(ddpg_agent_predator_1, 'ddpg_agent_predator_1', save_dir)
 load_ddpg(ddpg_agent_predator_2, 'ddpg_agent_predator_2', save_dir)
-load_ddpg(ddpg_agent_predator_3, 'ddpg_agent_predator_3', save_dir)
+# load_ddpg(ddpg_agent_predator_3, 'ddpg_agent_predator_3', save_dir)
 load_ddpg(ddpg_agent_prey_0, 'ddpg_agent_prey_0', save_dir)
-load_ddpg(ddpg_agent_prey_1, 'ddpg_agent_prey_1', save_dir)
+# load_ddpg(ddpg_agent_prey_1, 'ddpg_agent_prey_1', save_dir)
 
 # Initialize wandb
-wandb.init(project='Evaluate_DD_DD_4_2_rewards', name='DDPG_DDPG_4_2_rewards_benchmark_test(Close)_no_shape')
+wandb.init(project='Evaluate_Final_3_1', name='DDPG_DDPG_3_1')
 
 # Set a folder to save the gifs
-gif_dir = 'MADDPG_gifs_DD_DD_4_2_close_ns'
+gif_dir = 'MADDPG_gifs_DD_DD_3_1'
 if not os.path.exists(gif_dir):
     os.makedirs(gif_dir)
 
@@ -63,12 +63,12 @@ def evaluate_model(num_episodes):
             0: ddpg_agent_predator_0,
             1: ddpg_agent_predator_1,
             2: ddpg_agent_predator_2,
-            3: ddpg_agent_predator_3
+            # 3: ddpg_agent_predator_3
         }
         
         ddpg_prey_agents = {
             0: ddpg_agent_prey_0,
-            1: ddpg_agent_prey_1,
+            # 1: ddpg_agent_prey_1,
         }
 
         while env.agents:
@@ -101,8 +101,8 @@ def evaluate_model(num_episodes):
 
                     if agent_id == 0:
                         ddpg_loss0_prey = ddpg_agent_prey_0.update()
-                    elif agent_id == 1:
-                        ddpg_loss1_prey = ddpg_agent_prey_1.update()
+                    # elif agent_id == 1:
+                    #     ddpg_loss1_prey = ddpg_agent_prey_1.update()
                 else:
                     agent_rewards['predator'].append(reward)
                     agent_id = int(agent.split("_")[1])
@@ -115,8 +115,8 @@ def evaluate_model(num_episodes):
                         ddpg_loss1 = ddpg_agent_predator_1.update()
                     elif agent_id == 2:
                         ddpg_loss2 = ddpg_agent_predator_2.update()
-                    elif agent_id == 3:
-                        ddpg_loss3 = ddpg_agent_predator_3.update()
+                    # elif agent_id == 3:
+                    #     ddpg_loss3 = ddpg_agent_predator_3.update()
 
 
             episode_rewards.append(sum(rewards.values()))

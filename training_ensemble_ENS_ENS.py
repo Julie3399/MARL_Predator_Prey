@@ -59,34 +59,35 @@ if not os.path.exists(save_dir):
 for episode in tqdm(range(NUM_EPISODES), desc="Training Episodes"):
     observations, _ = env.reset()
     episode_rewards = []
-    p_list = [random.random(), random.random(), random.random(), random.random()]
+    p_list = [random.random(),random.random(),random.random(),random.random()]
+
 
     while env.agents:
         actions = {}
         for agent, obs in observations.items():
             if "predator_0" in agent:
                 if p_list[0] <= 0.5:
-
+    
                 # actions[agent] = maddpg_agent.act([obs])[0]
                     actions[agent] = ddpg_agent_predator_0.act(obs)
                 else:
                     actions[agent] = ddpg_agent_predator_4.act(obs)
             elif "predator_1" in agent:
                 if p_list[1] <= 0.5:
-
+    
                     # actions[agent] = maddpg_agent.act([obs])[0]
                     actions[agent] = ddpg_agent_predator_1.act(obs)
                 else:
                     actions[agent] = ddpg_agent_predator_5.act(obs)
             elif "predator_2" in agent:
                 if p_list[2] <= 0.5:
-
+    
                     # actions[agent] = maddpg_agent.act([obs])[0]
                     actions[agent] = ddpg_agent_predator_2.act(obs)
                 else:
                     actions[agent] = ddpg_agent_predator_6.act(obs)
             elif "prey_0" in agent:
-                if p_list[3] <= 0.5:
+                if p_list[3]<=0.5:
                     actions[agent] = ddpg_agent_prey_1.act(obs)
                     # actions[agent] = ddpg_agent.act(obs)
                 else:
@@ -151,14 +152,22 @@ for episode in tqdm(range(NUM_EPISODES), desc="Training Episodes"):
 
     if mean_episode_reward > max_mean_reward:
         max_mean_reward = mean_episode_reward
-        save_ddpg(ddpg_agent_predator_0, 'ddpg_agent_predator_0', save_dir)
-        save_ddpg(ddpg_agent_predator_1, 'ddpg_agent_predator_1', save_dir)
-        save_ddpg(ddpg_agent_predator_2, 'ddpg_agent_predator_2', save_dir)
-        save_ddpg(ddpg_agent_predator_4, 'ddpg_agent_predator_4', save_dir)
-        save_ddpg(ddpg_agent_predator_5, 'ddpg_agent_predator_5', save_dir)
-        save_ddpg(ddpg_agent_predator_6, 'ddpg_agent_predator_6', save_dir)
-        save_ddpg(ddpg_agent_prey_1, 'ddpg_agent0', save_dir)
-        save_ddpg(ddpg_agent_prey_2, 'ddpg_agent1', save_dir)
+        if p_list[0] <= 0.5:
+            save_ddpg(ddpg_agent_predator_0, 'ddpg_agent_predator_0', save_dir)
+        else:
+            save_ddpg(ddpg_agent_predator_4, 'ddpg_agent_predator_0', save_dir)
+        if p_list[1] <= 0.5:
+            save_ddpg(ddpg_agent_predator_1, 'ddpg_agent_predator_1', save_dir)
+        else:
+            save_ddpg(ddpg_agent_predator_5, 'ddpg_agent_predator_1', save_dir)
+        if p_list[2] <= 0.5:
+            save_ddpg(ddpg_agent_predator_2, 'ddpg_agent_predator_2', save_dir)
+        else:
+            save_ddpg(ddpg_agent_predator_6, 'ddpg_agent_predator_2', save_dir)
+        if p_list[3] <= 0.5:
+            save_ddpg(ddpg_agent_prey_1, 'ddpg_agent0', save_dir)
+        else:
+            save_ddpg(ddpg_agent_prey_2, 'ddpg_agent0', save_dir)
 
         print(f"New best model saved at episode {episode}")
 
