@@ -40,7 +40,7 @@ Our full-trained MADDPG models are saved in the `./MADDPG_DDPG_models` directory
 Execute the following command to evaluate the performances of agents:
 
 ```bash
-python evaluation.py
+python evaluate.py
 ```
 
 ## Results
