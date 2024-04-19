@@ -8,7 +8,7 @@ Code and setup details adapted from https://github.com/Destiny000621/Predator-Pr
 2. **Reward Shaping:** Developed and applied techniques to optimize learning incentives.
 3. **Extensive Experimentation:** Conducted a series of experiments to evaluate performance differences:
    - **Comparative Training Algorithms:** Analyzed interactions between different algorithms, such as MADDPG vs. MADDPG, DDPG vs. MADDPG, and Random vs. Random.
-   - **Varying Predator-Prey Ratios:** Tested scenarios with four predators and two prey, including adding file `MADDPG_prey` to adjust for this complexity.
+   - **Varying Predator-Prey Ratios:** Tested scenarios with four predators and two prey, including adding file `MADDPG_prey` to adjust for this complexity. (Need to change num_predator and num_prey in `multiagent/mpe/predator_prey/predator_prey.py`, otherwise, with default setting num_predator = 3 and num_prey = 1).
 
 ## Setup Details:
 
