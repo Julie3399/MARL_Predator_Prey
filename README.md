@@ -44,7 +44,7 @@ python evaluation.py
 ```
 
 ## Results
-
+Plots are displayed in `plot_training.ipynb`, results stored in `output_csv` folder.
 
 | Training Algorithm | Evaluation Results                                   |
 |------------------|--------------------------------------------------------|
